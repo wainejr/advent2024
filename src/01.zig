@@ -1,8 +1,6 @@
 const std = @import("std");
 
 pub fn main() !void {
-    // const allocator = std.testing.allocator;
-
     const filename = "src/input/01.txt";
 
     const file = try std.fs.cwd().openFile(filename, .{});
@@ -67,6 +65,9 @@ pub fn main() !void {
     std.debug.print("count {}\n", .{distance});
     test_order(array_left);
     test_order(array_right);
+
+    const similarity = try simlilarity_array(array_left, array_right);
+    std.debug.print("similarity {}\n", .{similarity});
 }
 
 fn test_order(arr: []i32) void {
@@ -88,4 +89,29 @@ fn insertion_sort(arr: *[]i32) void {
             aux_var -= 1;
         }
     }
+}
+
+fn simlilarity_array(arr1: []i32, arr2: []i32) !usize {
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+
+    const allocator = arena.allocator();
+
+    var hash = std.hash_map.AutoHashMap(i32, i32).init(allocator);
+    defer hash.deinit();
+    for (arr2) |v| {
+        if (hash.contains(v)) {
+            const v_prev = hash.get(v).?;
+            try hash.put(v, v_prev + 1);
+        } else {
+            try hash.put(v, 1);
+        }
+    }
+    var similarity: usize = 0;
+    for (arr1) |v| {
+        if (hash.contains(v)) {
+            similarity += @intCast(v * hash.get(v).?);
+        }
+    }
+    return similarity;
 }
