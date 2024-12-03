@@ -55,37 +55,40 @@ pub fn main() !void {
                     break;
                 };
                 if (char == 'o') {
+                    const match1 = "()";
+                    const match2 = "n't()";
                     char = reader.readByte() catch {
                         break;
                     };
-                    if (char == '(') {
-                        char = reader.readByte() catch {
-                            break;
-                        };
-                        if (char == ')') {
-                            do_state = StateDo.Doing;
-                        }
-                    } else if (char == 'n') {
-                        char = reader.readByte() catch {
-                            break;
-                        };
-                        if (char == '\'') {
+                    if (char == match1[0]) {
+                        var is_valid: bool = true;
+                        for (match1[1..]) |c| {
                             char = reader.readByte() catch {
+                                is_valid = false;
                                 break;
                             };
-                            if (char == 't') {
-                                char = reader.readByte() catch {
-                                    break;
-                                };
-                                if (char == '(') {
-                                    char = reader.readByte() catch {
-                                        break;
-                                    };
-                                    if (char == ')') {
-                                        do_state = StateDo.NotDoing;
-                                    }
-                                }
+                            if (char != c) {
+                                is_valid = false;
+                                break;
                             }
+                        }
+                        if (is_valid) {
+                            do_state = StateDo.Doing;
+                        }
+                    } else if (char == match2[0]) {
+                        var is_valid: bool = true;
+                        for (match2[1..]) |c| {
+                            char = reader.readByte() catch {
+                                is_valid = false;
+                                break;
+                            };
+                            if (char != c) {
+                                is_valid = false;
+                                break;
+                            }
+                        }
+                        if (is_valid) {
+                            do_state = StateDo.NotDoing;
                         }
                     }
                 }
