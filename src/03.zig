@@ -1,6 +1,7 @@
 const std = @import("std");
 
-const State = enum { None, MUL, op };
+const State = enum { None, MUL, op, check_do };
+const StateDo = enum { Doing, NotDoing };
 const RetType = struct {
     char: u8,
     val: i32,
@@ -39,17 +40,56 @@ pub fn main() !void {
 
     var n_sum_muls: usize = 0;
     var curr_state: State = State.None;
+    var do_state: StateDo = StateDo.Doing;
     var char: u8 = 0;
     while (true) {
-        // std.debug.print("{c}", .{char});
+        // std.debug.print("{c}\n", .{char});
         switch (curr_state) {
             .None => {
                 char = reader.readByte() catch {
                     break;
                 };
-                if (char == 'm') {
-                    curr_state = State.MUL;
+            },
+            .check_do => {
+                char = reader.readByte() catch {
+                    break;
+                };
+                if (char == 'o') {
+                    char = reader.readByte() catch {
+                        break;
+                    };
+                    if (char == '(') {
+                        char = reader.readByte() catch {
+                            break;
+                        };
+                        if (char == ')') {
+                            do_state = StateDo.Doing;
+                        }
+                    } else if (char == 'n') {
+                        char = reader.readByte() catch {
+                            break;
+                        };
+                        if (char == '\'') {
+                            char = reader.readByte() catch {
+                                break;
+                            };
+                            if (char == 't') {
+                                char = reader.readByte() catch {
+                                    break;
+                                };
+                                if (char == '(') {
+                                    char = reader.readByte() catch {
+                                        break;
+                                    };
+                                    if (char == ')') {
+                                        do_state = StateDo.NotDoing;
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
+                curr_state = State.None;
             },
             .MUL => {
                 char = reader.readByte() catch {
@@ -64,11 +104,7 @@ pub fn main() !void {
                     }
                 }
                 if (curr_state != State.op) {
-                    if (char == 'm') {
-                        curr_state = State.MUL;
-                    } else {
-                        curr_state = State.None;
-                    }
+                    curr_state = State.None;
                 }
             },
             .op => {
@@ -103,13 +139,16 @@ pub fn main() !void {
                 if (is_correct) {
                     n_sum_muls += @intCast(n1 * n2);
                 }
-
-                if (char == 'm') {
-                    curr_state = State.MUL;
-                } else {
-                    curr_state = State.None;
-                }
+                curr_state = State.None;
             },
+        }
+
+        if (curr_state == State.None and char == 'm') {
+            if (do_state == StateDo.Doing)
+                curr_state = State.MUL;
+        }
+        if (char == 'd') {
+            curr_state = State.check_do;
         }
     }
     std.debug.print("n sum num {}\n", .{n_sum_muls});
