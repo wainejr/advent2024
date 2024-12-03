@@ -14,12 +14,14 @@ pub fn main() !void {
 
     var line = try reader.readUntilDelimiter(&buffer, '\n');
     var n_valid_reports: usize = 0;
+    var n_line: usize = 0;
     while (true) {
         var curr_idx: usize = 0;
         var ini_idx: usize = 0;
         var is_valid: bool = true;
         var n_number: usize = 0;
         var arr_numbers: [100]i32 = .{-1} ** 100;
+        n_line += 1;
 
         while (curr_idx < line.len) {
             while (curr_idx < line.len and line[curr_idx] != ' ') {
@@ -81,12 +83,9 @@ pub fn main() !void {
         if (is_valid) {
             n_valid_reports += 1;
         }
+        std.debug.print("Line {} is valid {}\n", .{ n_line, is_valid });
 
-        if (!is_valid) {
-            std.debug.print("is valid {} line {s}\n", .{ is_valid, line });
-        }
         line = reader.readUntilDelimiter(&buffer, '\n') catch {
-            std.debug.print("file terminated. Lines\n", .{});
             break;
         };
     }

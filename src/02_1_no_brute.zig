@@ -14,11 +14,13 @@ pub fn main() !void {
 
     var line = try reader.readUntilDelimiter(&buffer, '\n');
     var n_valid_reports: usize = 0;
+    var n_line: usize = 0;
     while (true) {
         var curr_idx: usize = 0;
         var ini_idx: usize = 0;
         var is_valid: bool = true;
         var n_number: usize = 0;
+        n_line += 1;
         var arr_numbers: [100]i32 = .{-1} ** 100;
 
         while (curr_idx < line.len) {
@@ -40,6 +42,8 @@ pub fn main() !void {
 
         const anr = arr_numbers[0..n_number];
         var is_ascending = true;
+        var idx_remove_list: [100]usize = .{1000} ** 10;
+        var n_remove: usize = 0;
         var idx_cmp_asc: usize = 0;
         var error_asc = false;
 
@@ -47,12 +51,18 @@ pub fn main() !void {
         var idx_cmp_desc: usize = 0;
         var error_desc = false;
         for (anr[1..], 1..) |n, idx| {
-            const prev_number_asc = anr[idx_cmp_asc];
+            const prev_number_asc = anr[idx - 1];
             if (!(n > prev_number_asc and n <= prev_number_asc + 3)) {
                 if (error_asc) {
                     is_ascending = false;
                 }
+                idx_remove_list[n_remove] = idx_cmp_asc;
+                idx_remove_list[n_remove + 1] = idx;
+                n_remove += 2;
                 error_asc = true;
+            }
+            for (idx_remove_list[0..n_remove]) |ir| {
+                const prev_number = anr[if (ir == idx - 1) idx - 2 else idx - 1];
             } else {
                 idx_cmp_asc = idx;
             }
@@ -95,18 +105,15 @@ pub fn main() !void {
                 }
             }
         }
-        std.debug.print("here {any} asc {} desc {}\n", .{ arr_numbers, is_ascending, is_descending });
         is_valid = is_ascending or is_descending;
 
         if (is_valid) {
             n_valid_reports += 1;
         }
 
-        if (!is_valid) {
-            std.debug.print("is valid {} line {s}\n", .{ is_valid, line });
-        }
+        std.debug.print("Line {} is valid {}\n", .{ n_line, is_valid });
+
         line = reader.readUntilDelimiter(&buffer, '\n') catch {
-            std.debug.print("file terminated. Lines\n", .{});
             break;
         };
     }
