@@ -54,15 +54,42 @@ fn is_plan_valid(plan: []u32) bool {
     return true;
 }
 
+fn is_plan_idx_valid(plan: []u32, idx: usize) bool {
+    const p_left = plan[idx];
+    for (plan[idx + 1 ..]) |p_right| {
+        if (Rules[p_right + p_left * 100]) {
+            return false;
+        }
+    }
+    return true;
+}
+fn validate_plan(ptr_plan: *[]u32) void {
+    var plan = ptr_plan.*;
+    // Joga o numero o mais pra frente possível
+    for (plan[0 .. plan.len - 1], 0..) |_, idx_left| {
+        if (is_plan_idx_valid(plan, idx_left)) {
+            continue;
+        }
+
+        var idx_right: usize = idx_left + 1;
+        // enquanto for válida a troca
+        while (idx_right < plan.len and !is_plan_idx_valid(plan, idx_left)) {
+            const v = plan[idx_left];
+            plan[idx_left] = plan[idx_right];
+            plan[idx_right] = v;
+            if (is_plan_idx_valid(plan, idx_right)) {
+                break;
+            }
+            idx_right += 1;
+        }
+    }
+}
+
 pub fn main() !void {
     const filename = "src/input/05.txt";
 
     const file = try std.fs.cwd().openFile(filename, .{});
     defer file.close();
-
-    // var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    // defer arena.deinit();
-    // const allocator = arena.allocator();
 
     var n_rules: usize = 0;
     for (0..2048) |idx| {
@@ -73,12 +100,6 @@ pub fn main() !void {
     }
     std.debug.print("n rules {}\n", .{n_rules});
 
-    // const reader = file.reader();
-    // var char = try reader.readByte();
-    // while (char != '\n') {
-    //     char = try reader.readByte();
-    // }
-
     var rules_sum: usize = 0;
     var n_line: usize = 0;
 
@@ -87,19 +108,22 @@ pub fn main() !void {
         const plan_size = read_line_plan(file, &plan_buff) catch {
             break;
         };
-        if (plan_size == 0) {
-            break;
-        }
         n_line += 1;
-        const plan = plan_buff[0..plan_size];
-        if (!is_plan_valid(plan)) {
+        var plan = plan_buff[0..plan_size];
+        if (is_plan_valid(plan)) {
             continue;
         }
+        validate_plan(&plan);
 
+        if (!is_plan_valid(plan)) {
+            std.debug.print("IM WRONG:\n{any}\n\n", .{plan});
+            continue;
+        }
         const middle_number = plan[@divFloor(plan_size, 2)];
         rules_sum += middle_number;
-        std.debug.print("plan {any} is valid (line {} middle {} sum {})\n", .{ plan, n_line, middle_number, rules_sum });
+        // std.debug.print("plan {any} is corrected and valid (line {} middle {} sum {})\n", .{ plan, n_line, middle_number, rules_sum });
     }
+    std.debug.print("n_lines {}\n", .{n_line});
 
     std.debug.print("rules_sum {}\n", .{rules_sum});
 }
