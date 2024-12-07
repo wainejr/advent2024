@@ -46,6 +46,7 @@ const DIR_RIGHT = 0;
 var guard_ini: usize = 0;
 var guard_idx: usize = 0;
 var guard_direction: usize = undefined;
+var guard_ini_direction: usize = undefined;
 
 fn populate_table(file: std.fs.File) !void {
     try file.seekTo(0);
@@ -84,13 +85,16 @@ fn populate_table(file: std.fs.File) !void {
         }
     }
     guard_ini = guard_idx;
+    guard_ini_direction = guard_direction;
     N_ROWS = @divExact(@as(i32, @intCast(idx)), N_COLS);
 }
 
-fn walk_table() !void {
+fn walk_table(update_visited: bool) !void {
     const pos = idx2pos(guard_idx);
-    Visited[guard_idx] = true;
-    VISITED_DIRS[guard_direction][guard_idx] = true;
+    if (update_visited) {
+        Visited[guard_idx] = true;
+        VISITED_DIRS[guard_direction][guard_idx] = true;
+    }
 
     const dir = DIRECTIONS[guard_direction];
     const n_pos = .{ pos[0] + dir[0], pos[1] + dir[1] };
@@ -106,51 +110,29 @@ fn walk_table() !void {
 }
 
 fn is_cycle(block_idx: usize) bool {
-    if (Table[block_idx] == BLOCK) {
+    const last_used = Table[block_idx];
+    if (block_idx == guard_ini) {
         return false;
     }
-    const bpos = idx2pos(block_idx);
+    Table[block_idx] = BLOCK;
 
-    for (DIRECTIONS, 0..) |dir, dir_idx| {
-        const pos_orig: [2]i32 = .{ bpos[0] - dir[0], bpos[1] - dir[1] };
-        if (!is_valid_pos(pos_orig[0], pos_orig[1])) {
-            continue;
-        }
-        const pos_orig_idx = pos2idx(pos_orig[0], pos_orig[1]);
-        if (pos_orig_idx == guard_ini) {
-            continue;
-        }
+    guard_idx = guard_ini;
+    guard_direction = guard_ini_direction;
 
-        const n_dir_idx = @mod(dir_idx + 1, 4);
-        const n_dir = DIRECTIONS[n_dir_idx];
-        for (0..@intCast(N_COLS)) |cmul| {
-            const mul: i32 = @intCast(cmul);
-
-            const pos_test: [2]i32 = .{
-                pos_orig[0] + n_dir[0] * mul,
-                pos_orig[1] + n_dir[1] * mul,
-            };
-            if (!is_valid_pos(pos_test[0], pos_test[1])) {
-                break;
-            }
-            const pos_test_idx = pos2idx(pos_test[0], pos_test[1]);
-            if (Table[pos_test_idx] == BLOCK) {
-                break;
-            }
-            if (VISITED_DIRS[dir_idx][pos_orig_idx] and VISITED_DIRS[n_dir_idx][pos_test_idx]) {
-                return true;
-            }
-
-            if (VISITED_DIRS[dir_idx][pos_orig_idx] and VISITED_DIRS[n_dir_idx][pos_test_idx]) {
-                return true;
-            }
-        }
+    var cycle = true;
+    for (0..100_000) |_| {
+        walk_table(false) catch {
+            cycle = false;
+        };
     }
-    return false;
+
+    Table[block_idx] = last_used;
+
+    return cycle;
 }
 
 pub fn main() !void {
-    const filename = "src/input/06_test.txt";
+    const filename = "src/input/06.txt";
 
     const file = try std.fs.cwd().openFile(filename, .{});
     defer file.close();
@@ -168,7 +150,7 @@ pub fn main() !void {
 
     var n_walks: usize = 0;
     while (true) {
-        walk_table() catch {
+        walk_table(true) catch {
             break;
         };
         n_walks += 1;
@@ -176,6 +158,9 @@ pub fn main() !void {
 
     var n_cycles: usize = 0;
     for (0..@as(usize, @intCast(N_COLS * N_ROWS))) |idx| {
+        if (!Visited[idx]) {
+            continue;
+        }
         if (is_cycle(idx)) {
             n_cycles += 1;
             std.debug.print("pos cycle {any}\n", .{idx2pos(idx)});
